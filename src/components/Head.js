@@ -1,18 +1,29 @@
 import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { toggleMenu } from '../utils/appSlice';
 import { YOUTUBE_SERACH_API } from '../utils/constants';
+import { cacheResults } from '../utils/searchSlice';
 
 const Head = () => {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [suggestions, SetSuggestions] = useState([]); 
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchCache = useSelector((store) => store.search);
+    const dispatch = useDispatch();
     
     useEffect(() => {
         
         //make an api call after every key press
         //but if the diff bet 2 api calls is <200ms -decline api call
-        const timer = setTimeout(() => getSearchSuggestions(), 200);
+        const timer = setTimeout(() => {
+            if(searchCache[searchQuery]) {
+                SetSuggestions(searchCache[searchQuery]);
+            }
+            else {
+                getSearchSuggestions();
+            }
+        }, 200);
         return () => {
             clearTimeout(timer);
         }
@@ -24,9 +35,13 @@ const Head = () => {
         const json = await data.json();
         //console.log(json[1]);
         SetSuggestions(json[1]);
+        //update cache
+        dispatch(cacheResults({
+            [searchQuery]: json[1],
+        }));
     };
 
-    const dispatch = useDispatch();
+    //const dispatch = useDispatch();
     const toggleMenuHandeler=() => {
         dispatch(toggleMenu());
     };
@@ -52,17 +67,21 @@ const Head = () => {
         <input className="px-5 w-1/2 border border-gray-400 p-2 rounded-l-full" 
         type="text" 
         value={searchQuery} 
-        onChange={(e) => setSearchQuery(e.target.value)} />
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onFocus={() => setShowSuggestions(true)}
+        onBlur={()=> setShowSuggestions(false)} />
 
         <button className="border border-gray-400 p-2 rounded-r-full bg-gray-100">Search</button>
     </div>
-    <div className='fixed bg-white px-2 py-2 px-5 w-[37rem] shadow-lg rounded-lg border border-gray-100'>
+    {showSuggestions && (
+    <div className='fixed bg-white px-2 py-2 w-[37rem] shadow-lg rounded-lg border border-gray-100'>
         <ul>
             {suggestions.map((s)=> (
                 <li key={s} className='py-2 px-3 shadow-sm hover:bg-gray-100'>{s}</li>
             ) )}
         </ul>
     </div>
+    )}
     </div>
     <div className="col-span-1">
     <img 
@@ -73,4 +92,4 @@ const Head = () => {
   )
 }
 
-export default Head
+export default Head;

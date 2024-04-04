@@ -10,3 +10,4 @@ performance:
 debouncing with 200ms
 - if the difference between 2 key stroke is <200mx = decline API call
 ->200ms make API call
+
